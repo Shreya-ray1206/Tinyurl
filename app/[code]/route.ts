@@ -1,29 +1,21 @@
-// app/api/links/[code]/route.ts
-import { prisma } from "../../libs/prisma";
-import { redirect } from "next/navigation";
+import { NextResponse } from "next/server";
+import { getLinkByCode, incrementClick } from "../../action";
 
 export async function GET(
-  _req: Request,
-  { params }: { params: { code: string } }
+  req: Request,
+  context: { params: Promise<{ code: string }> } // Await is required
 ) {
-  const { code } = params;
+  const { code } = await context.params;
 
-  try {
-    // Update clicks and lastClicked
-    const link = await prisma.link.update({
-      where: { code },
-      data: {
-        clicks: { increment: 1 },
-        lastClicked: new Date(),
-      },
-    });
+  const link = await getLinkByCode(code);
 
-    // Redirect to the original URL
-    redirect(link.url);
-  } catch (err) {
-    console.error("Redirect error:", err);
-
-    // If link not found, return 404
-    return new Response("Not Found", { status: 404 });
+  if (!link) {
+    return new NextResponse("Short link not found", { status: 404 });
   }
+
+  // Increment click count
+  await incrementClick(code);
+
+  // Redirect to original URL
+  return NextResponse.redirect(link.url);
 }
