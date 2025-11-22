@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "../../../lib/prisma";
+import { getLinkByCode, incrementClick } from "../../action"; // correct relative path
 
 export async function GET(
   req: Request,
@@ -7,24 +7,15 @@ export async function GET(
 ) {
   const code = params.code;
 
-  // Look up the short link
-  const link = await prisma.link.findUnique({
-    where: { code },
-  });
+  const link = await getLinkByCode(code);
 
   if (!link) {
     return new NextResponse("Short link not found", { status: 404 });
   }
 
-  // Update clicks + last clicked
-  await prisma.link.update({
-    where: { code },
-    data: {
-      clicks: { increment: 1 },
-      lastClicked: new Date(),
-    },
-  });
+  // Increment click count
+  await incrementClick(code);
 
-  // Redirect to the long URL
+  // Redirect to original URL
   return NextResponse.redirect(link.url);
 }
