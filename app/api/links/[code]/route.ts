@@ -1,18 +1,19 @@
-import { getLinkByCode, incrementClick } from "../../../action";
+import { NextResponse } from "next/server";
+import { getLinkByCode, incrementClick } from "../../../action"; // adjust path
 
-export async function GET(req: Request, { params }: { params: { code: string } }) {
-  try {
-    const { code } = params;
-    const link = await getLinkByCode(code);
+export async function GET(
+  req: Request,
+  context: { params: Promise<{ code: string }> } // params is a Promise
+) {
+  const { code } = await context.params; // await the Promise
 
-    if (!link) {
-      return new Response("Not Found", { status: 404 });
-    }
+  const link = await getLinkByCode(code);
 
-    await incrementClick(code);
-    return Response.redirect(link.url, 302);
-  } catch (err) {
-    console.error("Redirect error:", err);
-    return new Response("Internal Server Error", { status: 500 });
+  if (!link) {
+    return new NextResponse("Short link not found", { status: 404 });
   }
+
+  await incrementClick(code);
+
+  return NextResponse.redirect(link.url);
 }
