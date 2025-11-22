@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getLinkByCode, incrementClick } from "../../action"; // correct relative path
+import { getLinkByCode, incrementClick } from "../../action";
 
 export async function GET(
   req: Request,
-  { params }: { params: { code: string } }
+  context: { params: Promise<{ code: string }> }
 ) {
-  const code = params.code;
+  const { code } = await context.params; // await here!
 
   const link = await getLinkByCode(code);
 
