@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getLinkByCode, incrementClick } from "../../action";
+import { getLinkByCode, incrementClick } from "../action";
 
 export async function GET(
   req: Request,
