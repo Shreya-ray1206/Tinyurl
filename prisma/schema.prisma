@@ -4,10 +4,12 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
- 
+
 model Link {
-  code        String   @id @unique @db.VarChar(8)
+  id          String   @id @default(cuid())
+  code        String   @unique
   url         String
   clicks      Int      @default(0)
   lastClicked DateTime?

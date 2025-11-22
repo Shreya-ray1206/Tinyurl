@@ -1,65 +1,166 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from "react";
+
+interface Link {
+  code: string;
+  url: string;
+  clicks: number;
+}
+
+export default function HomePage() {
+  const [url, setUrl] = useState("");
+  const [customCode, setCustomCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [links, setLinks] = useState<Link[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch links from API
+  async function fetchLinks() {
+    try {
+      const res = await fetch("/api/links");
+      const data = await res.json();
+
+      if (Array.isArray(data)) {
+        setLinks(data);
+        setError(null);
+      } else {
+        setLinks([]);
+        setError(data.error || "Failed to fetch links");
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setLinks([]);
+      setError("Failed to fetch links");
+    }
+  }
+
+  useEffect(() => {
+    fetchLinks();
+  }, []);
+
+  // Handle form submit
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/links", {
+        method: "POST",
+        body: JSON.stringify({ url, code: customCode || undefined }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 409) alert("Code already exists!");
+        else alert(data.error || "Failed to create link");
+        setLoading(false);
+        return;
+      }
+
+      setUrl("");
+      setCustomCode("");
+      await fetchLinks();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create link");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Delete a link
+  async function deleteLink(code: string) {
+    try {
+      await fetch(`/api/links/${code}`, { method: "DELETE" });
+      fetchLinks();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete link");
+    }
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 to-blue-100 py-12 px-4">
+      <div className="max-w-3xl mx-auto bg-white shadow-xl rounded-2xl p-8">
+        <h1 className="text-4xl font-extrabold text-gray-800 text-center mb-10">
+          TinyLink Dashboard
+        </h1>
+
+        {/* FORM */}
+        <form onSubmit={handleSubmit} className="p-6 border rounded-xl bg-gray-50 shadow-inner space-y-4">
+          <div>
+            <label className="block mb-1 font-semibold text-gray-700">Long URL</label>
+            <input
+              required
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://example.com"
+              className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </div>
+
+          <div>
+            <label className="block mb-1 font-semibold text-gray-700">Custom Code (optional)</label>
+            <input
+              value={customCode}
+              onChange={(e) => setCustomCode(e.target.value)}
+              placeholder="mycode123"
+              className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none"
+            />
+          </div>
+
+          <button
+            disabled={loading}
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition disabled:bg-gray-400"
           >
-            Documentation
-          </a>
+            {loading ? "Creating..." : "Create Short Link"}
+          </button>
+        </form>
+
+        {/* TABLE */}
+        <div className="mt-10 overflow-x-auto">
+          {error && <p className="text-red-600 text-center mb-4">{error}</p>}
+          <table className="w-full border rounded-xl overflow-hidden shadow">
+            <thead className="bg-gray-200">
+              <tr>
+                <th className="p-3 border">Code</th>
+                <th className="p-3 border">Target</th>
+                <th className="p-3 border">Clicks</th>
+                <th className="p-3 border">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {links.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="text-center p-4 text-gray-500 italic">
+                    No links created yet.
+                  </td>
+                </tr>
+              ) : (
+                links.map((link) => (
+                  <tr key={link.code} className="bg-white hover:bg-gray-50">
+                    <td className="p-3 border font-bold text-blue-600 underline">
+                      <a href={`/code/${link.code}`}>{link.code}</a>
+                    </td>
+                    <td className="p-3 border">{link.url}</td>
+                    <td className="p-3 border">{link.clicks}</td>
+                    <td className="p-3 border">
+                      <button
+                        onClick={() => deleteLink(link.code)}
+                        className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded transition"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
