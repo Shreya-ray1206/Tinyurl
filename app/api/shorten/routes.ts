@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createLink } from "../../../action"; // adjust path to your action.ts
+import { createLink } from "../../action"; // adjust path to your action.ts
 
 export async function POST(req: Request) {
   try {
