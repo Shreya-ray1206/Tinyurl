@@ -1,14 +1,13 @@
 import { getLinkByCode } from "../../action";
 import LinkStatsClient from "./LinkStatsClient";
 
-interface Params {
-  params: {
-    code: string;
-  };
+interface PageProps {
+  params: Promise<{ code: string }>; // Next.js expects Promise for App Router
 }
 
-export default async function StatsPage({ params }: Params) {
-    const { code } = await params; 
+export default async function StatsPage({ params }: PageProps) {
+  const { code } = await params; // await because params is a Promise
+
   const link = await getLinkByCode(code);
 
   if (!link) {
@@ -21,4 +20,3 @@ export default async function StatsPage({ params }: Params) {
 
   return <LinkStatsClient link={link} />;
 }
-
